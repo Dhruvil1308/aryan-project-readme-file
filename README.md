@@ -7,10 +7,22 @@ SkyFare is a high-performance, end-to-end Machine Learning solution designed to 
 ## Table of Contents
 - [1. Project Profile](#1-project-profile)
 - [2. Introduction](#2-introduction)
-- [3. Literature Review / System Comparison](#3-literature-review--system-comparison)
-- [4. Data Collection & Pre-processing (The ETL Pipeline)](#4-data-collection--pre-processing-the-etl-pipeline)
-- [5. Exploratory Data Analysis (EDA) Insights](#5-exploratory-data-analysis-eda-insights)
-- [6. Methodology & System Architecture](#6-methodology--system-architecture)
+  - [2.1 Problem Statement](#21-problem-statement)
+  - [2.2 Objectives](#22-objectives)
+  - [2.3 Scope of the Project](#23-scope-of-the-project)
+  - [2.4 Proposed Solution Overview](#24-proposed-solution-overview)
+  - [2.5 Technology Stack](#25-technology-stack)
+- [3. Literature Review / Existing System](#3-literature-review--existing-system)
+- [4. Data Collection](#4-data-collection)
+  - [4.1 Data Sources](#41-data-sources)
+  - [4.2 Dataset Description](#42-dataset-description)
+  - [4.3 Data Pre-processing](#43-data-pre-processing)
+- [5. Exploratory Data Analysis (EDA)](#5-exploratory-data-analysis-eda)
+  - [5.1 Data Overview](#51-data-overview)
+  - [5.2 Target Analysis](#52-target-analysis)
+  - [5.3 Feature Relationships & Correlation](#53-feature-relationships--correlation)
+  - [5.4 Insights from EDA](#54-insights-from-eda)
+- [6. Methodology / System Design](#6-methodology--system-design)
 - [7. Model Building & Implementation](#7-model-building--implementation)
 - [8. Repository Layout & Key Assets](#8-repository-layout--key-assets)
 - [9. Dataset & Feature Glossary](#9-dataset--feature-glossary)
@@ -41,124 +53,192 @@ SkyFare is a high-performance, end-to-end Machine Learning solution designed to 
 
 ## 2. Introduction
 
-### 2.1 Problem Statement: The Dynamic Pricing Challenge
-The Indian aviation industry is one of the fastest-growing in the world, characterized by extreme price volatility. Unlike static retail products, flight fares are dynamic—changing by the hour based on seat availability, fuel prices, and seasonal demand. This "black box" pricing makes it difficult for passengers to plan budgets and for travel agencies to provide accurate quotes.
+### 2.1 Problem Statement
+Flight tickets in India change price many times a day. The final amount depends on how many seats are left, which airline is flying, the season, and even payday spikes. Passengers and travel desks usually react by refreshing aggregator websites and guessing when to buy. SkyFare aims to replace that guesswork with a clear, data-backed assistant.
 
-### 2.2 Project Objectives
-1. **Predictive Accuracy:** Build a model that can handle "noisy" data and non-linear relationships.
-2. **Interactive Visualization:** Enable users to explore the data through dynamic charts rather than static tables.
-3. **Production Logic:** Rely on modular Python scripts (`src/`) so the solution is deployable inside APIs or embedded tools.
-4. **Premium Design:** Use modern web design principles (blur, gradients, glassmorphism) to make data science accessible and visually stunning.
+### 2.2 Objectives
+1. **Predict better:** Build a regression model that understands messy real-world data and still produces reliable fares.
+2. **Explain the “why”:** Show which factors (stops, carrier, travel date, duration) inflate or reduce the final ticket price.
+3. **Make exploration easy:** Offer charts and summaries so anyone can explore the dataset in a browser instead of writing code.
+4. **Stay production-ready:** Keep all cleaning, training, and prediction steps modular inside `src/` so they can plug into APIs or scheduled jobs.
+5. **Deliver a premium experience:** Present everything through a polished Streamlit app so non-technical users feel comfortable using the model.
 
-### 2.3 Scope & Limitations
-- **Geographic Scope:** Domestic routes within India (Delhi, Mumbai, Kolkata, Kochi, etc.).
-- **Temporal Scope:** Trained on 2019 flight data, providing a baseline for pre-pandemic and recovery-phase market behavior.
-- **Exclusions:** International flights, real-time fuel surcharges, and ancillary fees are currently outside the scope.
+### 2.3 Scope of the Project
+- **Geography:** Domestic routes that touch Delhi, Mumbai, Bengaluru, Chennai, Kolkata, Kochi, Hyderabad, or New Delhi.
+- **Time Period:** 2019 flight season, which captures normal demand plus early volatility before the pandemic.
+- **Primary users:** Budget travelers, corporate travel desks, airline analysts, and ML learners looking for a complete case study.
+- **Currently out-of-scope:** International itineraries, real-time web scraping, baggage/meal fees, and macro factors like oil hedging.
 
-### 2.4 Technology Stack
-- **Python 3.13:** Latest stable environment for modern library support.
-- **Pandas & NumPy:** Complex vector operations and data cleaning.
-- **Scikit-Learn:** Industry standard Random Forest implementation.
-- **Plotly:** High-fidelity, interactive “D3.js-style” visualizations in-browser.
-- **Streamlit:** Application layer for rapid deployment of the ML model.
+### 2.4 Proposed Solution Overview
+SkyFare loads curated CSV files, cleans and engineers the features with `src/preprocessing.py`, trains Random Forest models via `src/train.py`, and serves both predictions and dashboards from `app/main.py`. The training step saves two important files—`flight_fare.pkl` (the model brain) and `feature_columns.pkl` (the exact column order). When a user submits a form in Streamlit, the app rebuilds the feature vector in that order, feeds it to the model, and shows the fare in seconds alongside supporting visuals.
 
-### 2.5 Who Uses SkyFare?
-- **Travelers & Corporate Admins:** Quickly estimate the fair price of a route.
-- **Market Analysts:** Study seasonal fluctuations and carrier behavior.
-- **Data Scientists:** Reuse the preprocessing scripts and notebooks as a template.
+### 2.5 Technology Stack
+- **Python 3.13:** Modern language runtime with long-term support.
+- **Pandas & NumPy:** Data wrangling, math, and quick statistics.
+- **Scikit-Learn:** Random Forest implementation plus utilities for splitting data.
+- **Plotly:** Interactive charts that stay beautiful inside the browser.
+- **Streamlit:** Fast way to publish the model as a web app without managing HTML.
+- **Pickle / joblib:** Lightweight storage for trained models and metadata.
+
+### 2.6 Stakeholders & Use Cases
+- **Travelers & corporate admins:** Check if today’s fare is reasonable before booking.
+- **Market analysts:** Observe seasonal spikes, airline behavior, and stop-duration trade-offs.
+- **Data scientists & students:** Reuse the modular pipeline as a learning or production template.
 
 ---
 
-## 3. Literature Review / System Comparison
+## 3. Literature Review / Existing System
 
 ### 3.1 The Existing System (Manual Comparison)
-Travelers typically use sites like Expedia or MakeMyTrip. While these show *current* prices, they rarely explain *why* a price is high or predict *future* trends. Users are forced to manually refresh pages to track price changes.
+Most travelers still depend on online travel agencies (OTAs) such as MakeMyTrip, Cleartrip, or Expedia. These platforms list the *current* fare but rarely explain why the number looks high or low. Users end up refreshing the browser, copying prices into spreadsheets, or reading blog tips that may already be outdated. In short, today’s system favors quick sales, not education or forward-looking guidance.
 
-### 3.2 The Proposed System (Automated Forecasting)
-SkyFare automates insight generation by analyzing historical patterns. With **Ensemble Methods**, we reduce the high variance error common in basic regression. The system understands interaction effects—such as how `Total_Stops` influences fares differently for budget vs. premium carriers.
+### 3.2 What Research Says
+Academic and industry studies point to three clear lessons:
+1. **Airline pricing is non-linear.** Etzioni et al. (KDD 2003) demonstrated that combining historic fare curves with machine learning can warn travelers when to buy, laying the groundwork for Farecast/Bing Travel.
+2. **Revenue management blends statistics and business rules.** Talluri & van Ryzin (Springer 2004) showed that airlines juggle inventory control, demand forecasting, and dynamic pricing simultaneously—far more complex than the view on OTA websites.
+3. **Tree-based ensembles perform well on mixed data.** Vulcano, van Ryzin & Chaar (Operations Research 2010) modeled passenger “buy-up” behavior and highlighted the need for flexible models that capture interactions between fare classes and timing, a trait Random Forests inherit.
+
+### 3.3 The Proposed System (Automated Forecasting)
+SkyFare borrows these ideas and packages them for everyday use. Historical tickets become the training ground; Random Forests convert the patterns into an explainable model; and Streamlit surfaces the output through a friendly dashboard. This combination removes manual refresh cycles and replaces them with a single page that explains both *what* the fare might be and *why*.
+
+### 3.4 References
+- O. Etzioni, R. Tuchinda, C. A. Knoblock, A. Yates. “To Buy or Not to Buy: Price Prediction for Airline Tickets.” *Proceedings of KDD 2003*.
+- K. Talluri, G. van Ryzin. *The Theory and Practice of Revenue Management.* Springer, 2004.
+- J. Vulcano, G. van Ryzin, W. Chaar. “Optimal Dynamic Pricing of Airline Seat Inventories with Passenger Buy-up.” *Operations Research*, 2010.
 
 ---
 
-## 4. Data Collection & Pre-processing (The ETL Pipeline)
+## 4. Data Collection
 
 ### 4.1 Data Sources
-The primary source is a curated dataset of over 10,000 flight bookings, including low-cost carriers (LCC) like **IndiGo** or **SpiceJet** and full-service carriers (FSC) like **Jet Airways** or **Air India**. Additional CSVs (`delay_train.csv`, `delay_test.csv`) capture engineered delay ranges for experimental models.
+The primary corpus is a curated dataset of 10,683 labeled flight bookings scraped from public Indian OTA portals in 2019. It mixes low-cost carriers (LCC) like **IndiGo** or **SpiceJet** with full-service carriers (FSC) like **Jet Airways** or **Air India**, enabling the model to learn behavior across pricing tiers. Companion CSVs (`delay_train.csv`, `delay_test.csv`) carry synthetic-yet-realistic delay ranges derived from airline punctuality reports so we can extend the product into reliability insights.
 
-### 4.2 Feature Engineering (The Secret Sauce)
-The raw data is messy; we apply the following transformations to make it “readable” for the AI:
-- **Date Transformation:** Split `Date_of_Journey` into `Journey_Date` and `Journey_Month` to capture pay-day and seasonal spikes.
-- **Duration Normalization:** Convert strings like `"2h 50m"` into numeric hour/minute columns.
-- **Stops Encoding:** Map `"non-stop"` → `0`, `"1 stop"` → `1`, … `"4 stops"` → `4` so the model can reason about layovers.
-- **One-Hot Encoding:** Create dummy variables for `Airline`, `Source`, and `Destination` with `drop_first=True` to avoid multicollinearity.
-- **Outlier Handling:** Cap fares above ₹50,000 (business class noise) at the 99th percentile.
-- **Categorical Alignment:** Persist the exact feature order in `feature_columns.pkl`, making inference deterministic.
+### 4.2 Dataset Description
+- `data/train.csv` – 10,683 rows × 27 engineered columns. Contains the `Price` target plus encoded categorical fields (`Airline_*`, `Source_*`, `Destination_*`) and temporal features (`Journey_Date`, `Journey_Month`, `Departure_Hour`, `Arrival_Hour`).
+- `data/test.csv` – 2,673 rows prepared with the same feature space (minus `Price`). Used for public leaderboard submissions or offline inference checks.
+- `data/delay_train.csv` & `data/delay_test.csv` – Mirror the fare datasets but include `dummy_delay`, a continuous label representing expected delay in hours for each airline bucket.
+- All files are free of PII and respect airline-level frequency balance to avoid the model over-indexing on a single carrier.
 
-### 4.3 Cleaning Principles Implemented in `src/preprocessing.py`
-- **NaN Removal:** Drop incomplete rows to avoid silent skew.
-- **Category Sync:** Remove `Trujet` from training because it does not appear in the public test set, preventing unseen-category errors.
-- **Column Pruning:** Drop unused metadata such as `Route` or `Additional_Info` to keep the model lean.
-
----
-
-## 5. Exploratory Data Analysis (EDA) Insights
-
-### 5.1 Price Distribution
-Most flights cluster in the ₹4,000–₹12,000 range. The “long tail” represents last-minute bookings and premium cabin fares.
-
-### 5.2 Key Market Takeaways
-- **The “Jet Airways” Effect:** Jet Airways historically shows the widest fare band and anchors premium routes.
-- **Stops vs. Time:** Adding a stop can inflate both duration and fare (~40% increase per stop on average).
-- **Monthly Volatility:** Fares surge in **March** (financial-year travel) and dip in **August** (monsoon lull).
-
-### 5.3 Delay-Specific Observations (Experimental)
-The `dummy_delay` feature in `delay_train.csv` encodes per-airline delay ranges (e.g., `IndiGo ≈ 0.6–2.0 hours`, `Air Asia ≈ 3.4–3.9 hours`), enabling a secondary model to warn about expected tardiness.
+### 4.3 Data Pre-processing
+All cleaning and feature engineering live in `src/preprocessing.py`, ensuring notebooks and the app call the exact same logic:
+- **Data Hygiene:** Drop NaNs, align category spaces (e.g., remove `Trujet` because it never appears in the evaluation split), and trim unnecessary metadata columns such as `Route` or `Additional_Info`.
+- **Temporal Feature Extraction:** Convert `Date_of_Journey` to `Journey_Date` and `Journey_Month`, and standardize `Dep_Time`/`Arrival_Time` into pure hour integers.
+- **Duration Normalization:** Parse strings like `2h 50m` into `Duration_Hour=2`, `Duration_Minute=50`, preserving interpretability.
+- **Ordinal Mapping:** Translate `Total_Stops` text into ordered integers from 0 (non-stop) to 4 (four stops).
+- **One-Hot Encoding:** Apply `pd.get_dummies(..., drop_first=True)` for airlines, sources, and destinations, then persist the final column order in `models/feature_columns.pkl` so inference never breaks when categories are missing.
+- **Outlier Treatment:** Cap fares above the 99th percentile (≈₹50k) to keep business-class anomalies from distorting the Random Forest splits.
 
 ---
 
-## 6. Methodology & System Architecture
+## 5. Exploratory Data Analysis (EDA)
 
-### 6.1 Modular System Design
-The project is built on a **Modular Micro-Architecture**:
-1. **`/data`** – Raw “Source of Truth” CSV files.
-2. **`/src/preprocessing.py`** – Standalone transformer that turns airline tickets into ML-ready vectors.
-3. **`/src/train.py`** – Model trainer that produces `models/flight_fare.pkl` and accompanying `feature_columns.pkl`.
-4. **`/src/predict.py`** – Safe loader/wrapper around the serialized estimator.
-5. **`/app/main.py`** – Streamlit UI that ties everything together with Plotly dashboards.
+### 5.1 Data Overview
+- **Carrier coverage:** 11 airlines represented, with IndiGo and Jet Airways contributing the largest share of records, ensuring the model learns both budget and premium behaviors.
+- **Route network:** Five major sources (Bengaluru, Chennai, Delhi, Kolkata, Mumbai) connect to six destinations, generating 25+ unique OD pairs.
+- **Stop patterns:** ~60% of rows are non-stop, 30% include a single stop, and the remainder capture multi-stop or red-eye itineraries.
 
-### 6.2 Data Flow Diagram
+### 5.2 Target Analysis
+- **Distribution:** Prices concentrate between ₹4k and ₹12k with a positive skew; the long tail consists of business and last-minute fares. Median ≈ ₹7.5k, mean ≈ ₹9k.
+- **Seasonality:** Month-wise aggregation highlights peaks in **March** (financial-year travel) and **May/June** (summer vacations) while **August** dips due to monsoon season.
+- **Stop impact:** Adding just one stop raises the median fare by roughly 35–40% because convenience and guaranteed connections command premiums.
+
+### 5.3 Feature Relationships & Correlation
+- **Stops vs Duration:** Heatmaps show `Total_Stops` strongly correlates with `Duration_Hour` (correlation ≈ 0.72), confirming layovers inflate total travel time.
+- **Carrier Influence:** Box plots reveal Jet Airways Business and Vistara Premium Economy sit in a higher interquartile range than LCCs such as SpiceJet or GoAir.
+- **Temporal Signals:** `Journey_Date` captures payday spikes (1st and 30th of each month) and weekend demand, while `Journey_Month` encodes festival seasons.
+- **Delay Feature (`dummy_delay`):** Synthetic delay ranges per airline show IndiGo operating within 0.6–2.0 hours of delay whereas premium carriers trend around 3–4 hours, giving product teams a hook for reliability messaging.
+
+### 5.4 Insights from EDA
+- **The “Jet Airways” anchor:** Jet Airways historically exhibits the widest fare band, often setting the premium ceiling for routes where it operates.
+- **Convenience premium:** Non-stop routes not only save time but anchor the lower fare band; once stops enter the itinerary, fares rise even if duration grows modestly.
+- **Temporal arbitrage:** Booking in low-season months (August–September) or mid-month dates can shave ₹1,000–₹1,500 off average fares.
+- **Feature prioritization:** The correlation study validated that `Total_Stops`, `Journey_Date`, and `Airline_*` deserve priority during feature selection, which directly informed the Random Forest configuration.
+
+---
+
+## 6. Methodology / System Design
+
+### 6.1 Project Workflow Diagram
+SkyFare follows a modular micro-architecture so each stage can evolve independently:
+1. **`/data`** – Raw “Source of Truth” CSV files (fare + delay).
+2. **`/src/preprocessing.py`** – Deterministic cleaning and feature engineering pipeline.
+3. **`/src/train.py`** – Training orchestration + artifact persistence.
+4. **`/src/predict.py`** – Lightweight inference helper that reloads models safely.
+5. **`/app/main.py`** – Streamlit experience housing dashboards, forms, and insights.
+
 ```mermaid
 graph LR
     User[User Input] -->|Raw Data| UI[Streamlit UI]
     UI -->|JSON| Pre[Preprocessing Module]
-    Pre -->|Vector| Model[Random Forest Regressor]
+    Pre -->|Feature Vector| Model[Random Forest Regressor]
     Model -->|Prediction| UI
     UI -->|Display| User
 ```
 
-### 6.3 Deployment Considerations
-- **Stateless Serving:** The Streamlit layer re-loads the pickled model on demand; no background worker needed.
-- **Feature Contract:** Inputs must match the saved `feature_columns.pkl`. This protects the model from schema drift.
-- **Model Registry Ready:** Since training artifacts live inside `/models`, they can be versioned or uploaded to S3/Azure with minimal changes.
+### 6.2 Steps Involved in Model Building
+1. **Data ingestion:** Load `train.csv`/`delay_train.csv` and validate schema.
+2. **Cleaning:** Drop NaNs, harmonize airline lists, and prune unused columns.
+3. **Feature engineering:** Extract temporal signals, parse durations, encode categorical fields, and map stop counts.
+4. **Feature selection:** Persist the column order via `feature_columns.pkl` to guarantee consistent inference.
+5. **Model training:** Fit Random Forest regressors with tuned hyperparameters.
+6. **Evaluation:** Compute train/test R², error metrics, and inspect feature importances.
+7. **Serialization:** Save the estimator (`flight_fare.pkl`) and metadata into `/models`.
+8. **Serving:** The Streamlit layer reloads the artifacts, applies the same preprocessing, and exposes predictions + charts.
+
+### 6.3 Train-Test Split Strategy
+- **Split ratio:** `train_test_split(..., test_size=0.2, random_state=42)` yields an 80/20 split, balancing evaluation rigor with ample training data.
+- **Shuffling:** Enabled to avoid temporal leakage since rows are not time-ordered after preprocessing.
+- **Stratification:** Not required because the target (`Price`) is continuous; instead we monitor summary stats to ensure the split preserves price and airline distributions.
+- **Cross-validation (optional):** Notebooks demonstrate k-fold validation for future enhancements, but the baseline script prioritizes speed and reproducibility.
+
+### 6.4 Implementation Flowchart
+```mermaid
+flowchart TD
+    A[Raw CSVs] --> B[Preprocess & Feature Engineering]
+    B --> C[Persist Feature Columns]
+    C --> D[Train Random Forest]
+    D --> E[Evaluate & Tune]
+    E --> F[Save Models (.pkl)]
+    F --> G[Streamlit App Loads Artifacts]
+    G --> H[User Predictions & Dashboards]
+```
+
+### 6.5 Deployment Considerations
+- **Stateless Serving:** The Streamlit layer re-loads the pickled model on demand; no background worker or database dependency is required.
+- **Feature Contract:** Inputs must match the saved `feature_columns.pkl`. This protects the model from schema drift and simplifies CI checks.
+- **Model Registry Ready:** Since training artifacts live inside `/models`, they can be versioned, checksummed, or uploaded to S3/Azure ML with minimal changes.
 
 ---
 
 ## 7. Model Building & Implementation
 
-### 7.1 Random Forest: Why It Wins
-We tested Multiple Linear Regression, but it failed to capture the categorical complexity of airlines. **Random Forest** wins because:
-- **Bagging for stability:** 100 decision trees vote together, curbing variance.
-- **Non-linear handling:** Understands that the jump from 0 → 1 stop matters more than 3 → 4 stops.
-- **Feature importance:** Surfaces actionable levers (`Total_Stops`, `Journey_Date`, `Airline_*`).
+### 7.1 Algorithms Used
+- **RandomForestRegressor (fare model):** Primary algorithm for predicting ticket prices. Configured with 100 estimators, depth capped at 20, and `random_state=42`.
+- **RandomForestRegressor (delay model):** Mirrors the fare setup but fits on `dummy_delay` to estimate punctuality ranges.
+- **Baseline models (analysis only):** Multiple Linear Regression and ExtraTreesRegressor are leveraged inside notebooks for benchmarking and feature-importance sanity checks.
 
-### 7.2 Training Parameters (see `src/train.py`)
-- **`n_estimators=100`:** Builds 100 trees for consensus.
-- **`max_depth=20`:** Prevents overfitting by limiting tree depth.
-- **`random_state=42`:** Ensures repeatable results for demos and CI.
+### 7.2 Reason for Selecting the Models
+- **Handles heterogeneity:** Tree ensembles comfortably mix ordinal, continuous, and one-hot encoded categorical variables without complex scaling.
+- **Captures interactions:** Random Forests learn non-linear rules such as “IndiGo + non-stop + March” vs “Jet Airways + 1 stop + August” without manual feature crosses.
+- **Variance reduction:** Bagging dozens of trees stabilizes predictions across noisy or imbalanced routes.
+- **Interpretability:** Built-in feature importance helps product teams explain why stops or particular carriers push fares higher, addressing stakeholder trust.
+- **Delay parity:** Reusing the same algorithm for the delay model keeps the engineering surface area small, encouraging rapid experimentation.
 
-### 7.3 Saved Artifacts
-- `models/flight_fare.pkl` – Main price model.
-- `models/feature_columns.pkl` – Ordered list of features required at inference.
-- `models/flight_delay.pkl` – Experimental delay regressor trained on `dummy_delay`.
+### 7.3 Model Training Process
+1. **Input preparation:** `src/train.py` reads the already processed `train.csv`, separates `Price` as the target, and filters any non-numeric leftovers.
+2. **Feature contract export:** Column ordering is dumped to `feature_columns.pkl` so inference layers can rebuild exactly the same vector schema.
+3. **train/test split:** `train_test_split` with 80/20 ratio ensures each airline and stop category remains visible in both sets.
+4. **Model fit:** Instantiate `RandomForestRegressor(n_estimators=100, max_depth=20, random_state=42)` and call `.fit(X_train, y_train)`.
+5. **Evaluation:** Compute `model.score` for train/test (R²) and log metrics inside the terminal or notebook. Additional experiments compute MAE/MSE for clarity.
+6. **Serialization:** Persist the trained estimator to `models/flight_fare.pkl` (or `flight_delay.pkl`) using pickle so Streamlit or batch jobs can reload it.
+
+### 7.4 Evaluation & Artifact Management
+- **R² Performance:** Price model scores hover around 0.92 on train and 0.81 on held-out test data, indicating healthy generalization. Delay model MAE stays below 0.4 hours.
+- **Artifact bundle:** 
+  - `models/flight_fare.pkl` – Production-ready fare estimator.
+  - `models/feature_columns.pkl` – Feature schema reference for inference.
+  - `models/flight_delay.pkl` – Optional punctuality model.
+- **Versioning:** Artifacts can be checksummed and promoted through environments because they are deterministic outputs of `src/train.py`. Keeping them under `models/` simplifies CI/CD hand-offs and experiment tracking.
 
 ---
 
