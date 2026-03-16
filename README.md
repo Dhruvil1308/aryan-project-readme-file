@@ -1,3 +1,37 @@
+## 📞 GuniVox Voice Agent – System Workflow
+
+```mermaid
+flowchart TD
+
+A[Admin Uploads Student Leads CSV / Database] --> B[Backend Processing - FastAPI Server]
+
+B --> C[Outbound Call Trigger via Twilio API]
+
+C --> D[Call Connected to Student]
+
+D --> E[Real-time Audio Streaming]
+
+E --> F[Speech-to-Text Engine - Deepgram]
+
+F --> G[Conversation Engine - LLM Decision Logic]
+
+G --> H[Fetch Admission Data from Database]
+
+H --> I[Generate Dynamic Response]
+
+I --> J[Text-to-Speech Engine - Piper TTS]
+
+J --> K[Voice Response Streamed Back via Twilio]
+
+K --> L[Student Continues Conversation]
+
+L -->|If More Queries| F
+L -->|Call Ended| M[Conversation Data Stored]
+
+M --> N[Dashboard Analytics & Lead Insights]
+
+N --> O[Admin Can View Reports & Follow-ups]
+
 # SkyFare | Premium Flight Fare Prediction & Analysis ✈️
 
 SkyFare is a high-performance, end-to-end Machine Learning solution designed to solve the complexity of domestic flight pricing in India. By combining a robust **Random Forest Regressor** with a premium **Streamlit** interface, SkyFare provides travelers, product managers, and analysts with a scientific way to navigate the volatile aviation market. The goal is simple: make airfare intelligence understandable for everyone—from first-time flyers to revenue-ops teams.
